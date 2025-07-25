@@ -1,0 +1,54 @@
+{
+    "canisters": {
+        "frontend": {
+            "dependencies": [
+                "backend"
+            ],
+            "frontend": {
+                "entrypoint": "src/frontend/index.html"
+            },
+            "source": [
+                "src/frontend/src/assets",
+                "dist"
+            ],
+            "type": "assets",
+            "gzip": true
+        },
+       "backend":{
+        "type":"azle",
+        "main": "src/backend/index.ts",
+        "custom": {
+            "experimental": true
+        }
+       },
+       "ledger_canister": {
+        "type": "custom",
+        "candid": "https://raw.githubusercontent.com/dfinity/ic/ca5e5052886de781021506814d2c6502e375da48/rs/rosetta-api/icp_ledger/ledger.did",
+        "wasm": "https://download.dfinity.systems/ic/ca5e5052886de781021506814d2c6502e375da48/canisters/ledger-canister.wasm.gz",
+        "remote": {
+          "id": {
+            "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+          }
+        }
+      },
+       "internet_identity": {
+        "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
+        "frontend": {},
+        "remote": {
+            "id": {
+                "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+            }
+        },
+        "type": "custom",
+        "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
+    }
+     
+    },
+    "defaults": {
+        "build": {
+            "args": "",
+            "packtool": ""
+        }
+    },
+    "version": 1
+}
