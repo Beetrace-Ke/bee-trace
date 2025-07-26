@@ -1,15 +1,14 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { ToastError, ToastSuccess } from "../../utils/toast";
-import { createHive } from "../../utils/endpoints";
+import { ToastError } from "../../utils/toast";
+import { getMyHives } from "../../utils/endpoints";
 
-export const CreateHiveThunk = createAsyncThunk(
-  "CreateHive",
+export const GetMyHivesThunk = createAsyncThunk(
+  "GetMyHives",
   async (data, { rejectWithValue }) => {
     try {
-      const repo = await createHive(data);
+      const repo = await getMyHives(data);
       
       if (repo.Ok) {
-        ToastSuccess("Hive added successfully");
         return repo.Ok;
       } else if (repo.Err) {
         console.error("Backend error:", repo.Err);
@@ -19,14 +18,14 @@ export const CreateHiveThunk = createAsyncThunk(
         } else if (repo.Err.InvalidPayload) {
           ToastError(repo.Err.InvalidPayload);
         } else {
-          ToastError("Failed to create hive");
+          ToastError("Failed to fetch your hives");
         }
         
         return rejectWithValue(repo.Err);
       }
       
     } catch (error) {
-      console.error("Error creating hive:", error);
+      console.error("Error fetching my hives:", error);
       ToastError("An error occurred. Please try again.");
       return rejectWithValue(error);
     }

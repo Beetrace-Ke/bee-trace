@@ -100,16 +100,6 @@ const AddBeehive = ({ fetchBeehives }) => {
       // Wait for the beehive creation to complete
       await dispatch(CreateHiveThunk(cleanData));
 
-      // Generate beehive ID for success message
-      const hiveId = `BH-${new Date().getFullYear()}-${String(
-        Math.floor(Math.random() * 1000)
-      ).padStart(3, "0")}`;
-
-      toast({
-        title: "Beehive Registered Successfully!",
-        description: `Beehive ${hiveId} has been added to your apiary.`,
-      });
-
       navigate("/dashboard?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai");
 
       // Fetch the updated beehives data
