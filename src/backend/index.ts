@@ -161,6 +161,7 @@ const Hive = Record({
   id: text,
   beekeeperId: text,
   beekeeper: Principal,
+  county: text,
   location: text,
   installationDate: text,
   status: HiveStatus,
@@ -181,6 +182,7 @@ type Hive = typeof Hive.tsType;
  */
 const HoneyBatch = Record({
   id: text,
+  hiveId: text,
   beekeeperId: text,
   beekeeper: Principal,
   harvestDate: text,
@@ -296,6 +298,7 @@ type InvestorProfilePayload = typeof InvestorProfilePayload.tsType;
  * Hive Creation Payload
  */
 const HivePayload = Record({
+  county: text,
   location: text,
   installationDate: text,
   estimatedYield: float64,
@@ -308,6 +311,7 @@ type HivePayload = typeof HivePayload.tsType;
  * Honey Batch Creation Payload
  */
 const HoneyBatchPayload = Record({
+  hiveId: text,
   harvestDate: text,
   quantity: float64,
   quality: BatchQuality,
@@ -697,6 +701,7 @@ export default Canister({
         id: hiveId,
         beekeeperId: beekeeper.id,
         beekeeper: principal,
+        county: payload.county,
         location: payload.location,
         installationDate: payload.installationDate,
         status: { Active: "Operational" },
@@ -741,15 +746,15 @@ export default Canister({
       try {
         const principal = ic.caller();
 
-        // Get beekeeper profile by principal
-        const beekeeper = beekeepersStorage
-          .values()
-          .find((b) => b.owner.toText() === principal.toText());
+        const hive = hivesStorage.get(payload.hiveId);
 
-        if (!beekeeper) {
+        if (!hive) {
+          return Err({ NotFound: `Hive with ID ${payload.hiveId} not found` });
+        }
+
+        if (hive.beekeeper.toText() !== principal.toText()) {
           return Err({
-            NotFound:
-              "Beekeeper profile not found. Please create a profile first.",
+            Unauthorized: "You can only create batches for your own hives",
           });
         }
 
@@ -762,7 +767,8 @@ export default Canister({
 
         const newBatch: HoneyBatch = {
           id: batchId,
-          beekeeperId: beekeeper.id,
+          hiveId: payload.hiveId,
+          beekeeperId: hive.beekeeperId,
           beekeeper: principal,
           harvestDate: payload.harvestDate,
           quantity: payload.quantity,
@@ -778,14 +784,26 @@ export default Canister({
 
         honeyBatchesStorage.insert(batchId, newBatch);
 
-        // Update beekeeper's stats
-        const updatedBeekeeper: BeekeeperProfile = {
-          ...beekeeper,
-          totalBatches: beekeeper.totalBatches + BigInt(1),
-          totalHoneyProduced: beekeeper.totalHoneyProduced + payload.quantity,
+        // Update hive's honey batches
+        const updatedHive: Hive = {
+          ...hive,
+          honeyBatches: [...hive.honeyBatches, batchId],
           updatedAt: timestamp,
         };
-        beekeepersStorage.insert(beekeeper.id, updatedBeekeeper);
+        hivesStorage.insert(payload.hiveId, updatedHive);
+
+        // Update beekeeper's stats
+        const beekeeper = beekeepersStorage.get(hive.beekeeperId);
+        if (beekeeper) {
+          const updatedBeekeeper: BeekeeperProfile = {
+            ...beekeeper,
+            totalBatches: beekeeper.totalBatches + BigInt(1),
+            totalHoneyProduced: beekeeper.totalHoneyProduced + payload.quantity,
+            updatedAt: timestamp,
+          };
+          beekeepersStorage.insert(beekeeper.id, updatedBeekeeper);
+        }
+
         return Ok(newBatch);
       } catch (error) {
         return Err({
