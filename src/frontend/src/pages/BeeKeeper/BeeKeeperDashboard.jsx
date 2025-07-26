@@ -101,8 +101,25 @@ const BeeKeeperDashboard = ({ beeKeeper }) => {
           </Card>
         </div>
 
-        {/* Action Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Action Cards - Updated to 4 columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+          <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group">
+            <Link to="/add-beehive?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai">
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto p-4 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 w-16 h-16 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <CirclePlus className="h-8 w-8 text-white" />
+                </div>
+                <CardTitle className="text-xl font-bold text-gray-900">Add Beehive</CardTitle>
+                <CardDescription>Register a new beehive to your apiary and start tracking</CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
+                  Add New Hive
+                </Button>
+              </CardContent>
+            </Link>
+          </Card>
+
           <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group">
             <Link to="/track-honey?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai">
               <CardHeader className="text-center pb-4">
