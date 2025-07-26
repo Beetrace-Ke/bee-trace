@@ -2,7 +2,6 @@ import { Principal } from "@dfinity/principal";
 
 // Beekeeper functions
 const createBeekeeperProfile = async (beekeeperPayload) => {
-  console.log("Creating beekeeper profile with payload:", beekeeperPayload);
   return await window.canister.BeeTraceCanister.createBeekeeperProfile(
     beekeeperPayload
   );
@@ -42,6 +41,10 @@ const createHive = async (hivePayload) => {
 
 const getHive = async (hiveId) => {
   return await window.canister.BeeTraceCanister.getHive(hiveId);
+};
+
+const getMyHives = async () => {
+  return await window.canister.BeeTraceCanister.getMyHives();
 };
 
 const listHives = async () => {
@@ -105,6 +108,7 @@ export {
   getBeekeeperByUserId,
   createHive,
   getHive,
+  getMyHives,
   listHives,
   getHivesByBeekeeper,
   createHoneyBatch,
