@@ -102,7 +102,6 @@ export {
   getInvestorProfileByOwner,
   getUser,
   listUsers,
-  registerBeekeeper,
   getBeekeeperByUserId,
   createHive,
   getHive,

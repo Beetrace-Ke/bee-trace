@@ -9,6 +9,9 @@ import MyBookingSlice from "../slice/MyBookingSlice";
 import BookByPropertySlice from "../slice/BookByPropertySlice";
 import BeekeeperSlice from "../slice/BeekeeperSlice";
 import InvestorSlice from "../slice/InvestorSlice";
+import CreateHive from "../slice/CreateHiveSlice";
+import CreateHoneyBatch from "../slice/CreateHoneyBatchSlice";
+import CreateInvestment from "../slice/CreateInvestmentSlice";
 
 const store = configureStore({
   reducer: {
@@ -21,7 +24,10 @@ const store = configureStore({
     MyBooking: MyBookingSlice,
     BookByProperty: BookByPropertySlice,
     beekeeper: BeekeeperSlice,
-	investor: InvestorSlice,
+    investor: InvestorSlice,
+    CreateHive: CreateHive,
+    CreateHoneyBatch: CreateHoneyBatch,
+    CreateInvestment: CreateInvestment,
   },
 });
 
