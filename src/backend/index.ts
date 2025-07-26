@@ -51,6 +51,7 @@ const BatchQuality = Variant({
   Premium: text,
   Standard: text,
   Organic: text,
+  Raw: text,
 });
 
 type BatchQuality = typeof BatchQuality.tsType;
@@ -123,6 +124,7 @@ const BeekeeperProfile = Record({
   status: BeekeeperStatus,
   verified: bool,
   hives: Vec(text), // Array of hive IDs
+  investors: Vec(text),
   createdAt: text,
   updatedAt: text,
 });
@@ -140,12 +142,12 @@ const InvestorProfile = Record({
   email: text,
   phoneNumber: text,
   location: text,
-  investorType: text, // "Individual", "Institution", "Fund"
+  investorType: text,
   totalInvestments: nat64,
-  totalInvested: float64, // Total amount invested in $BEE tokens
+  totalInvested: float64,
   activeInvestments: nat64,
   kycCompleted: bool,
-  investments: Vec(text), // Array of investment IDs
+  investments: Vec(text),
   createdAt: text,
   updatedAt: text,
 });
@@ -165,8 +167,8 @@ const Hive = Record({
   estimatedYield: float64,
   currentInvestment: float64, // in $BEE tokens
   targetInvestment: float64, // in $BEE tokens
-  investors: Vec(text), 
-  honeyBatches: Vec(text), 
+  investors: Vec(text),
+  honeyBatches: Vec(text),
   carbonCredits: Vec(text),
   createdAt: text,
   updatedAt: text,
@@ -179,18 +181,17 @@ type Hive = typeof Hive.tsType;
  */
 const HoneyBatch = Record({
   id: text,
-  hiveId: text,
   beekeeperId: text,
   beekeeper: Principal,
   harvestDate: text,
   quantity: float64, // in kg
   quality: BatchQuality,
-  qualityScore: nat64, // 0-100
+  county: text,
   location: text,
   verificationStatus: VerificationStatus,
   verifierId: Opt(text),
   nftTokenId: Opt(text),
-  pricePerKg: Opt(float64),
+  // pricePerKg: Opt(float64),
   createdAt: text,
   updatedAt: text,
 });
@@ -307,13 +308,12 @@ type HivePayload = typeof HivePayload.tsType;
  * Honey Batch Creation Payload
  */
 const HoneyBatchPayload = Record({
-  hiveId: text,
   harvestDate: text,
   quantity: float64,
   quality: BatchQuality,
-  qualityScore: nat64,
+  county: text,
   location: text,
-  pricePerKg: Opt(float64),
+  // pricePerKg: Opt(float64),
 });
 
 type HoneyBatchPayload = typeof HoneyBatchPayload.tsType;
@@ -384,167 +384,199 @@ export default Canister({
   /**
    * Creates a new beekeeper profile
    */
-  createBeekeeperProfile: update([BeekeeperProfilePayload], Result(BeekeeperProfile, Message), (payload) => {
-    try {
-      if (typeof payload !== "object" || Object.keys(payload).length === 0) {
-        return Err({ InvalidPayload: "Invalid payload provided" });
+  createBeekeeperProfile: update(
+    [BeekeeperProfilePayload],
+    Result(BeekeeperProfile, Message),
+    (payload) => {
+      try {
+        if (typeof payload !== "object" || Object.keys(payload).length === 0) {
+          return Err({ InvalidPayload: "Invalid payload provided" });
+        }
+
+        if (!isValidName(payload.firstName) || !isValidName(payload.lastName)) {
+          return Err({
+            InvalidPayload:
+              "First and last names must be between 2 and 50 characters",
+          });
+        }
+
+        if (!isValidEmail(payload.email)) {
+          return Err({ InvalidPayload: "Invalid email format" });
+        }
+
+        const principal = ic.caller();
+
+        // Check if beekeeper already exists for this principal
+        const existingBeekeeper = Array.from(beekeepersStorage.values()).find(
+          (beekeeper) => beekeeper.owner.toText() === principal.toText()
+        );
+
+        if (existingBeekeeper) {
+          return Err({
+            AlreadyExists:
+              "Beekeeper profile already exists for this principal",
+          });
+        }
+
+        // Check if email is already taken
+        const emailExists = Array.from(beekeepersStorage.values()).find(
+          (beekeeper) =>
+            beekeeper.email.toLowerCase() === payload.email.toLowerCase()
+        );
+
+        if (emailExists) {
+          return Err({
+            AlreadyExists: `Beekeeper with email ${payload.email} already exists`,
+          });
+        }
+
+        const timestamp = getCurrentTimestamp();
+        const beekeeperId = generateId();
+
+        const newBeekeeper: BeekeeperProfile = {
+          id: beekeeperId,
+          owner: principal,
+          firstName: payload.firstName,
+          lastName: payload.lastName,
+          email: payload.email,
+          phoneNumber: payload.phoneNumber,
+          county: payload.county,
+          location: payload.location,
+          yearsOfExperience: payload.yearsOfExperience,
+          totalHives: BigInt(0),
+          totalBatches: BigInt(0),
+          totalHoneyProduced: 0.0,
+          reputationScore: BigInt(50), // Starting reputation
+          certifications: payload.certifications,
+          status: { PendingVerification: "Awaiting verification" },
+          verified: false,
+          hives: [],
+          investors: [],
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+
+        beekeepersStorage.insert(beekeeperId, newBeekeeper);
+        return Ok(newBeekeeper);
+      } catch (error) {
+        return Err({
+          SystemError: `Error creating beekeeper profile: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        });
       }
-
-      if (!isValidName(payload.firstName) || !isValidName(payload.lastName)) {
-        return Err({ InvalidPayload: "First and last names must be between 2 and 50 characters" });
-      }
-
-      if (!isValidEmail(payload.email)) {
-        return Err({ InvalidPayload: "Invalid email format" });
-      }
-
-      const principal = ic.caller();
-      
-      // Check if beekeeper already exists for this principal
-      const existingBeekeeper = Array.from(beekeepersStorage.values()).find(
-        (beekeeper) => beekeeper.owner.toText() === principal.toText()
-      );
-
-      if (existingBeekeeper) {
-        return Err({ AlreadyExists: "Beekeeper profile already exists for this principal" });
-      }
-
-      // Check if email is already taken
-      const emailExists = Array.from(beekeepersStorage.values()).find(
-        (beekeeper) => beekeeper.email.toLowerCase() === payload.email.toLowerCase()
-      );
-
-      if (emailExists) {
-        return Err({ AlreadyExists: `Beekeeper with email ${payload.email} already exists` });
-      }
-
-      const timestamp = getCurrentTimestamp();
-      const beekeeperId = generateId();
-
-      const newBeekeeper: BeekeeperProfile = {
-        id: beekeeperId,
-        owner: principal,
-        firstName: payload.firstName,
-        lastName: payload.lastName,
-        email: payload.email,
-        phoneNumber: payload.phoneNumber,
-        county: payload.county,
-        location: payload.location,
-        yearsOfExperience: payload.yearsOfExperience,
-        totalHives: BigInt(0),
-        totalBatches: BigInt(0),
-        totalHoneyProduced: 0.0,
-        reputationScore: BigInt(50), // Starting reputation
-        certifications: payload.certifications,
-        status: { PendingVerification: "Awaiting verification" },
-        verified: false,
-        hives: [],
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      };
-
-      beekeepersStorage.insert(beekeeperId, newBeekeeper);
-      return Ok(newBeekeeper);
-    } catch (error) {
-      return Err({
-        SystemError: `Error creating beekeeper profile: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      });
     }
-  }),
+  ),
 
   /**
    * Creates a new investor profile
    */
-  createInvestorProfile: update([InvestorProfilePayload], Result(InvestorProfile, Message), (payload) => {
-    try {
-      if (typeof payload !== "object" || Object.keys(payload).length === 0) {
-        return Err({ InvalidPayload: "Invalid payload provided" });
+  createInvestorProfile: update(
+    [InvestorProfilePayload],
+    Result(InvestorProfile, Message),
+    (payload) => {
+      try {
+        if (typeof payload !== "object" || Object.keys(payload).length === 0) {
+          return Err({ InvalidPayload: "Invalid payload provided" });
+        }
+
+        if (!isValidName(payload.firstName) || !isValidName(payload.lastName)) {
+          return Err({
+            InvalidPayload:
+              "First and last names must be between 2 and 50 characters",
+          });
+        }
+
+        if (!isValidEmail(payload.email)) {
+          return Err({ InvalidPayload: "Invalid email format" });
+        }
+
+        const principal = ic.caller();
+
+        // Check if investor already exists for this principal
+        const existingInvestor = Array.from(investorsStorage.values()).find(
+          (investor) => investor.owner.toText() === principal.toText()
+        );
+
+        if (existingInvestor) {
+          return Err({
+            AlreadyExists: "Investor profile already exists for this principal",
+          });
+        }
+
+        // Check if email is already taken
+        const emailExists = Array.from(investorsStorage.values()).find(
+          (investor) =>
+            investor.email.toLowerCase() === payload.email.toLowerCase()
+        );
+
+        if (emailExists) {
+          return Err({
+            AlreadyExists: `Investor with email ${payload.email} already exists`,
+          });
+        }
+
+        const timestamp = getCurrentTimestamp();
+        const investorId = generateId();
+
+        const newInvestor: InvestorProfile = {
+          id: investorId,
+          owner: principal,
+          firstName: payload.firstName,
+          lastName: payload.lastName,
+          email: payload.email,
+          phoneNumber: payload.phoneNumber,
+          location: payload.location,
+          investorType: payload.investorType,
+          totalInvestments: BigInt(0),
+          totalInvested: 0.0,
+          activeInvestments: BigInt(0),
+          kycCompleted: false,
+          investments: [],
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+
+        investorsStorage.insert(investorId, newInvestor);
+        return Ok(newInvestor);
+      } catch (error) {
+        return Err({
+          SystemError: `Error creating investor profile: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        });
       }
-
-      if (!isValidName(payload.firstName) || !isValidName(payload.lastName)) {
-        return Err({ InvalidPayload: "First and last names must be between 2 and 50 characters" });
-      }
-
-      if (!isValidEmail(payload.email)) {
-        return Err({ InvalidPayload: "Invalid email format" });
-      }
-
-      const principal = ic.caller();
-      
-      // Check if investor already exists for this principal
-      const existingInvestor = Array.from(investorsStorage.values()).find(
-        (investor) => investor.owner.toText() === principal.toText()
-      );
-
-      if (existingInvestor) {
-        return Err({ AlreadyExists: "Investor profile already exists for this principal" });
-      }
-
-      // Check if email is already taken
-      const emailExists = Array.from(investorsStorage.values()).find(
-        (investor) => investor.email.toLowerCase() === payload.email.toLowerCase()
-      );
-
-      if (emailExists) {
-        return Err({ AlreadyExists: `Investor with email ${payload.email} already exists` });
-      }
-
-      const timestamp = getCurrentTimestamp();
-      const investorId = generateId();
-
-      const newInvestor: InvestorProfile = {
-        id: investorId,
-        owner: principal,
-        firstName: payload.firstName,
-        lastName: payload.lastName,
-        email: payload.email,
-        phoneNumber: payload.phoneNumber,
-        location: payload.location,
-        investorType: payload.investorType,
-        totalInvestments: BigInt(0),
-        totalInvested: 0.0,
-        activeInvestments: BigInt(0),
-        kycCompleted: false,
-        investments: [],
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      };
-
-      investorsStorage.insert(investorId, newInvestor);
-      return Ok(newInvestor);
-    } catch (error) {
-      return Err({
-        SystemError: `Error creating investor profile: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      });
     }
-  }),
+  ),
 
   /**
    * Gets beekeeper profile by owner (caller)
    */
-  getBeeKeeperProfileByOwner: query([], Result(BeekeeperProfile, Message), () => {
-    try {
-      const principal = ic.caller();
-      const beekeeper = beekeepersStorage.values().find(
-        (b) => b.owner.toText() === principal.toText()
-      );
+  getBeeKeeperProfileByOwner: query(
+    [],
+    Result(BeekeeperProfile, Message),
+    () => {
+      try {
+        const principal = ic.caller();
+        const beekeeper = beekeepersStorage
+          .values()
+          .find((b) => b.owner.toText() === principal.toText());
 
-      if (!beekeeper) {
-        return Err({ NotFound: "Beekeeper profile not found for this principal" });
+        if (!beekeeper) {
+          return Err({
+            NotFound: "Beekeeper profile not found for this principal",
+          });
+        }
+        return Ok(beekeeper);
+      } catch (error) {
+        return Err({
+          SystemError: `Error retrieving beekeeper profile: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        });
       }
-      return Ok(beekeeper);
-    } catch (error) {
-      return Err({
-        SystemError: `Error retrieving beekeeper profile: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      });
     }
-  }),
+  ),
 
   /**
    * Gets investor profile by owner (caller)
@@ -552,12 +584,14 @@ export default Canister({
   getInvestorProfileByOwner: query([], Result(InvestorProfile, Message), () => {
     try {
       const principal = ic.caller();
-      const investor = investorsStorage.values().find(
-        (i) => i.owner.toText() === principal.toText()
-      );
+      const investor = investorsStorage
+        .values()
+        .find((i) => i.owner.toText() === principal.toText());
 
       if (!investor) {
-        return Err({ NotFound: "Investor profile not found for this principal" });
+        return Err({
+          NotFound: "Investor profile not found for this principal",
+        });
       }
       return Ok(investor);
     } catch (error) {
@@ -572,21 +606,27 @@ export default Canister({
   /**
    * Gets beekeeper profile by ID
    */
-  getBeekeeperProfile: query([text], Result(BeekeeperProfile, Message), (beekeeperId) => {
-    try {
-      const beekeeper = beekeepersStorage.get(beekeeperId);
-      if (!beekeeper) {
-        return Err({ NotFound: `Beekeeper with ID ${beekeeperId} not found` });
+  getBeekeeperProfile: query(
+    [text],
+    Result(BeekeeperProfile, Message),
+    (beekeeperId) => {
+      try {
+        const beekeeper = beekeepersStorage.get(beekeeperId);
+        if (!beekeeper) {
+          return Err({
+            NotFound: `Beekeeper with ID ${beekeeperId} not found`,
+          });
+        }
+        return Ok(beekeeper);
+      } catch (error) {
+        return Err({
+          SystemError: `Error retrieving beekeeper: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        });
       }
-      return Ok(beekeeper);
-    } catch (error) {
-      return Err({
-        SystemError: `Error retrieving beekeeper: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      });
     }
-  }),
+  ),
 
   /**
    * Lists all beekeepers
@@ -632,16 +672,22 @@ export default Canister({
   createHive: update([HivePayload], Result(Hive, Message), (payload) => {
     try {
       const principal = ic.caller();
-      const beekeeper = beekeepersStorage.values().find(
-        (b) => b.owner.toText() === principal.toText()
-      );
+      const beekeeper = beekeepersStorage
+        .values()
+        .find((b) => b.owner.toText() === principal.toText());
 
       if (!beekeeper) {
-        return Err({ NotFound: "Beekeeper profile not found. Please create a profile first." });
+        return Err({
+          NotFound:
+            "Beekeeper profile not found. Please create a profile first.",
+        });
       }
 
       if (payload.estimatedYield <= 0 || payload.targetInvestment <= 0) {
-        return Err({ InvalidPayload: "Estimated yield and target investment must be positive" });
+        return Err({
+          InvalidPayload:
+            "Estimated yield and target investment must be positive",
+        });
       }
 
       const timestamp = getCurrentTimestamp();
@@ -688,57 +734,51 @@ export default Canister({
   /**
    * Creates a new honey batch
    */
-  createHoneyBatch: update([HoneyBatchPayload], Result(HoneyBatch, Message), (payload) => {
-    try {
-      const principal = ic.caller();
-      const hive = hivesStorage.get(payload.hiveId);
-      
-      if (!hive) {
-        return Err({ NotFound: `Hive with ID ${payload.hiveId} not found` });
-      }
+  createHoneyBatch: update(
+    [HoneyBatchPayload],
+    Result(HoneyBatch, Message),
+    (payload) => {
+      try {
+        const principal = ic.caller();
 
-      if (hive.beekeeper.toText() !== principal.toText()) {
-        return Err({ Unauthorized: "You can only create batches for your own hives" });
-      }
+        // Get beekeeper profile by principal
+        const beekeeper = beekeepersStorage
+          .values()
+          .find((b) => b.owner.toText() === principal.toText());
 
-      if (payload.quantity <= 0 || payload.qualityScore > 100) {
-        return Err({ InvalidPayload: "Invalid quantity or quality score" });
-      }
+        if (!beekeeper) {
+          return Err({
+            NotFound:
+              "Beekeeper profile not found. Please create a profile first.",
+          });
+        }
 
-      const timestamp = getCurrentTimestamp();
-      const batchId = generateId();
+        if (payload.quantity <= 0) {
+          return Err({ InvalidPayload: "Invalid quantity" });
+        }
 
-      const newBatch: HoneyBatch = {
-        id: batchId,
-        hiveId: payload.hiveId,
-        beekeeperId: hive.beekeeperId,
-        beekeeper: principal,
-        harvestDate: payload.harvestDate,
-        quantity: payload.quantity,
-        quality: payload.quality,
-        qualityScore: payload.qualityScore,
-        location: payload.location,
-        verificationStatus: { Pending: "Awaiting verification" },
-        verifierId: None,
-        nftTokenId: None,
-        pricePerKg: payload.pricePerKg,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      };
+        const timestamp = getCurrentTimestamp();
+        const batchId = generateId();
 
-      honeyBatchesStorage.insert(batchId, newBatch);
+        const newBatch: HoneyBatch = {
+          id: batchId,
+          beekeeperId: beekeeper.id,
+          beekeeper: principal,
+          harvestDate: payload.harvestDate,
+          quantity: payload.quantity,
+          quality: payload.quality,
+          location: payload.location,
+          county: payload.county,
+          verificationStatus: { Pending: "Awaiting verification" },
+          verifierId: None,
+          nftTokenId: None,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
 
-      // Update hive's honey batches
-      const updatedHive: Hive = {
-        ...hive,
-        honeyBatches: [...hive.honeyBatches, batchId],
-        updatedAt: timestamp,
-      };
-      hivesStorage.insert(payload.hiveId, updatedHive);
+        honeyBatchesStorage.insert(batchId, newBatch);
 
-      // Update beekeeper's stats
-      const beekeeper = beekeepersStorage.get(hive.beekeeperId);
-      if (beekeeper) {
+        // Update beekeeper's stats
         const updatedBeekeeper: BeekeeperProfile = {
           ...beekeeper,
           totalBatches: beekeeper.totalBatches + BigInt(1),
@@ -746,12 +786,123 @@ export default Canister({
           updatedAt: timestamp,
         };
         beekeepersStorage.insert(beekeeper.id, updatedBeekeeper);
+        return Ok(newBatch);
+      } catch (error) {
+        return Err({
+          SystemError: `Error creating honey batch: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        });
+      }
+    }
+  ),
+
+  /**
+   * Generates NFT record for honey batch (mints NFT)
+   */
+  generateNFTRecord: update([text], Result(HoneyBatch, Message), (batchId) => {
+    try {
+      const principal = ic.caller();
+      const batch = honeyBatchesStorage.get(batchId);
+
+      if (!batch) {
+        return Err({ NotFound: `Honey batch with ID ${batchId} not found` });
       }
 
-      return Ok(newBatch);
+      if (batch.beekeeper.toText() !== principal.toText()) {
+        return Err({
+          Unauthorized: "You can only generate NFT for your own batches",
+        });
+      }
+
+      if (batch.nftTokenId !== None) {
+        return Err({ AlreadyExists: "NFT already generated for this batch" });
+      }
+
+      // Generate unique NFT token ID
+      const nftTokenId = `HB_${batchId}_${Date.now()}`;
+
+      const timestamp = getCurrentTimestamp();
+
+      // Update batch with NFT token ID
+      const updatedBatch: HoneyBatch = {
+        ...batch,
+        nftTokenId: Some(nftTokenId),
+        updatedAt: timestamp,
+      };
+
+      honeyBatchesStorage.insert(batchId, updatedBatch);
+
+      return Ok(updatedBatch);
     } catch (error) {
       return Err({
-        SystemError: `Error creating honey batch: ${
+        SystemError: `Error generating NFT record: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      });
+    }
+  }),
+
+  /**
+   * Generates QR code data for honey batch
+   */
+  generateQRCodeData: query([text], Result(text, Message), (batchId) => {
+    try {
+      const batch = honeyBatchesStorage.get(batchId);
+
+      if (!batch) {
+        return Err({ NotFound: `Honey batch with ID ${batchId} not found` });
+      }
+
+      if (batch.nftTokenId === None) {
+        return Err({ NotFound: "NFT not generated for this batch yet" });
+      }
+
+      // Create QR code data object
+      const qrData = {
+        batchId: batch.id,
+        nftTokenId: batch.nftTokenId,
+        harvestDate: batch.harvestDate,
+        quantity: batch.quantity,
+        quality: batch.quality,
+        location: batch.location,
+        beekeeper: batch.beekeeperId,
+        verificationStatus: batch.verificationStatus,
+        blockchainVerifyUrl: `https://your-app.com/verify/${batch.id}`,
+      };
+
+      // Return as JSON string for QR code generation
+      return Ok(JSON.stringify(qrData));
+    } catch (error) {
+      return Err({
+        SystemError: `Error generating QR code data: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      });
+    }
+  }),
+
+  /**
+   * Verifies honey batch authenticity via QR scan
+   */
+  verifyHoneyBatch: query([text], Result(HoneyBatch, Message), (batchId) => {
+    try {
+      const batch = honeyBatchesStorage.get(batchId);
+
+      if (!batch) {
+        return Err({
+          NotFound: "Invalid honey batch - not found in blockchain",
+        });
+      }
+
+      if (batch.nftTokenId === None) {
+        return Err({ NotFound: "Batch not properly tokenized" });
+      }
+
+      return Ok(batch);
+    } catch (error) {
+      return Err({
+        SystemError: `Error verifying batch: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
       });
@@ -761,80 +912,90 @@ export default Canister({
   /**
    * Creates an investment
    */
-  createInvestment: update([InvestmentPayload], Result(Investment, Message), (payload) => {
-    try {
-      const principal = ic.caller();
-      const investor = investorsStorage.values().find(
-        (i) => i.owner.toText() === principal.toText()
-      );
+  createInvestment: update(
+    [InvestmentPayload],
+    Result(Investment, Message),
+    (payload) => {
+      try {
+        const principal = ic.caller();
+        const investor = investorsStorage
+          .values()
+          .find((i) => i.owner.toText() === principal.toText());
 
-      if (!investor) {
-        return Err({ NotFound: "Investor profile not found. Please create a profile first." });
+        if (!investor) {
+          return Err({
+            NotFound:
+              "Investor profile not found. Please create a profile first.",
+          });
+        }
+
+        const hive = hivesStorage.get(payload.hiveId);
+        if (!hive) {
+          return Err({ NotFound: `Hive with ID ${payload.hiveId} not found` });
+        }
+
+        if (payload.amount <= 0) {
+          return Err({ InvalidPayload: "Investment amount must be positive" });
+        }
+
+        if (hive.currentInvestment + payload.amount > hive.targetInvestment) {
+          return Err({
+            InvalidPayload:
+              "Investment exceeds target investment for this hive",
+          });
+        }
+
+        const timestamp = getCurrentTimestamp();
+        const investmentId = generateId();
+
+        const newInvestment: Investment = {
+          id: investmentId,
+          investorId: investor.id,
+          investor: principal,
+          hiveId: payload.hiveId,
+          beekeeperId: hive.beekeeperId,
+          amount: payload.amount,
+          investmentDate: timestamp,
+          expectedReturn: payload.expectedReturn,
+          actualReturn: None,
+          status: { Active: "Investment is active" },
+          maturityDate: payload.maturityDate,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+
+        investmentsStorage.insert(investmentId, newInvestment);
+
+        // Update hive's current investment and investors
+        const updatedHive: Hive = {
+          ...hive,
+          currentInvestment: hive.currentInvestment + payload.amount,
+          investors: [...hive.investors, investor.id],
+          updatedAt: timestamp,
+        };
+        hivesStorage.insert(payload.hiveId, updatedHive);
+
+        // Update investor's stats
+        const updatedInvestor: InvestorProfile = {
+          ...investor,
+          totalInvestments: investor.totalInvestments + BigInt(1),
+          totalInvested: investor.totalInvested + payload.amount,
+          activeInvestments: investor.activeInvestments + BigInt(1),
+          investments: [...investor.investments, investmentId],
+          updatedAt: timestamp,
+        };
+        investorsStorage.insert(investor.id, updatedInvestor);
+
+        return Ok(newInvestment);
+      } catch (error) {
+        return Err({
+          SystemError: `Error creating investment: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        });
       }
-
-      const hive = hivesStorage.get(payload.hiveId);
-      if (!hive) {
-        return Err({ NotFound: `Hive with ID ${payload.hiveId} not found` });
-      }
-
-      if (payload.amount <= 0) {
-        return Err({ InvalidPayload: "Investment amount must be positive" });
-      }
-
-      if (hive.currentInvestment + payload.amount > hive.targetInvestment) {
-        return Err({ InvalidPayload: "Investment exceeds target investment for this hive" });
-      }
-
-      const timestamp = getCurrentTimestamp();
-      const investmentId = generateId();
-
-      const newInvestment: Investment = {
-        id: investmentId,
-        investorId: investor.id,
-        investor: principal,
-        hiveId: payload.hiveId,
-        beekeeperId: hive.beekeeperId,
-        amount: payload.amount,
-        investmentDate: timestamp,
-        expectedReturn: payload.expectedReturn,
-        actualReturn: None,
-        status: { Active: "Investment is active" },
-        maturityDate: payload.maturityDate,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      };
-
-      investmentsStorage.insert(investmentId, newInvestment);
-
-      // Update hive's current investment and investors
-      const updatedHive: Hive = {
-        ...hive,
-        currentInvestment: hive.currentInvestment + payload.amount,
-        investors: [...hive.investors, investor.id],
-        updatedAt: timestamp,
-      };
-      hivesStorage.insert(payload.hiveId, updatedHive);
-
-      // Update investor's stats
-      const updatedInvestor: InvestorProfile = {
-        ...investor,
-        totalInvestments: investor.totalInvestments + BigInt(1),
-        totalInvested: investor.totalInvested + payload.amount,
-        activeInvestments: investor.activeInvestments + BigInt(1),
-        investments: [...investor.investments, investmentId],
-        updatedAt: timestamp,
-      };
-      investorsStorage.insert(investor.id, updatedInvestor);
-
-      return Ok(newInvestment);
-    } catch (error) {
-      return Err({
-        SystemError: `Error creating investment: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      });
     }
-  }),
+  ),
 
   /**
    * Lists all hives
@@ -899,9 +1060,11 @@ export default Canister({
   getMyInvestments: query([], Result(Vec(Investment), Message), () => {
     try {
       const principal = ic.caller();
-      const investments = investmentsStorage.values().filter(
-        (investment) => investment.investor.toText() === principal.toText()
-      );
+      const investments = investmentsStorage
+        .values()
+        .filter(
+          (investment) => investment.investor.toText() === principal.toText()
+        );
 
       if (investments.length === 0) {
         return Err({ NotFound: "No investments found for this investor" });
@@ -922,9 +1085,9 @@ export default Canister({
   getMyHives: query([], Result(Vec(Hive), Message), () => {
     try {
       const principal = ic.caller();
-      const hives = hivesStorage.values().filter(
-        (hive) => hive.beekeeper.toText() === principal.toText()
-      );
+      const hives = hivesStorage
+        .values()
+        .filter((hive) => hive.beekeeper.toText() === principal.toText());
 
       if (hives.length === 0) {
         return Err({ NotFound: "No hives found for this beekeeper" });
