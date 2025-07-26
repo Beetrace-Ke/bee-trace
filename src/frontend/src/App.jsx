@@ -1,15 +1,12 @@
 import React from "react";
 import { Route, BrowserRouter, Routes } from "react-router-dom";
 import Layout from "./pages/Layout";
-// import ViewPage from "./pages/ViewPage";
 import Homepage from "./pages/Homepage";
 import ProtectedLayout from "./pages/ProtectedLayout";
 import BeeKeeper from "./pages/BeeKeeper/BeeKeeper";
 import Investor from "./pages/Investor/Investor";
 import WalletLogin from "./pages/WalletLogin";
 import RoleSelection from "./pages/RoleSelection";
-import InvestorDashboard from "./pages/InvestorDashboard";
-import Dashboard from "./pages/Dashboard";
 import TrackHoney from "./pages/TrackHoney";
 import Invest from "./pages/Invest";
 import Credits from "./pages/Credits";
@@ -26,7 +23,6 @@ const routes = [
       { path: "/", element: <Homepage /> },
       { path: "/wallet-login", element: <WalletLogin /> },
       { path: "/role-selection", element: <RoleSelection /> },
-      { path: "/track-honey", element: <TrackHoney /> },
       { path: "/invest", element: <Invest /> },
       { path: "/credits", element: <Credits /> },
       { path: "/marketplace", element: <Marketplace /> },
@@ -41,6 +37,7 @@ const routes = [
       { path: "/investor-dashboard", element: <Investor /> },
       { path: "/profile", element: <Profile /> },
       { path: "/profile-settings", element: <ProfileSettings /> },
+      { path: "/track-honey", element: <TrackHoney /> },
     ],
   },
 ];

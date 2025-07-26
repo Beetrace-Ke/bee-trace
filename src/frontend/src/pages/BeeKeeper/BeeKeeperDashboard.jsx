@@ -104,7 +104,7 @@ const BeeKeeperDashboard = ({ beeKeeper }) => {
         {/* Action Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group">
-            <Link to="/track">
+            <Link to="/track-honey?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai">
               <CardHeader className="text-center pb-4">
                 <div className="mx-auto p-4 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 w-16 h-16 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <Search className="h-8 w-8 text-white" />
@@ -121,7 +121,7 @@ const BeeKeeperDashboard = ({ beeKeeper }) => {
           </Card>
 
           <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group">
-            <Link to="/invest">
+            <Link to="/invest?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai">
               <CardHeader className="text-center pb-4">
                 <div className="mx-auto p-4 rounded-full bg-gradient-to-br from-green-400 to-green-500 w-16 h-16 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <CirclePlus className="h-8 w-8 text-white" />
@@ -138,7 +138,7 @@ const BeeKeeperDashboard = ({ beeKeeper }) => {
           </Card>
 
           <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group">
-            <Link to="/credits">
+            <Link to="/credits?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai">
               <CardHeader className="text-center pb-4">
                 <div className="mx-auto p-4 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 w-16 h-16 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <User className="h-8 w-8 text-white" />
