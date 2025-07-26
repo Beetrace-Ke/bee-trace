@@ -14,6 +14,7 @@ import Profile from "./pages/Profile";
 import Marketplace from "./pages/Marketplace";
 import NotFound from "./pages/NotFound";
 import ProfileSettings from "./pages/ProfileSettings";
+import AddBeehive from "./pages/CreateHive";
 
 const routes = [
   {
@@ -37,6 +38,7 @@ const routes = [
       { path: "/investor-dashboard", element: <Investor /> },
       { path: "/profile", element: <Profile /> },
       { path: "/profile-settings", element: <ProfileSettings /> },
+      { path: "/add-beehive", element: <AddBeehive /> },
       { path: "/track-honey", element: <TrackHoney /> },
     ],
   },
