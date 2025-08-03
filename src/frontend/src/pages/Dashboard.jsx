@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, CirclePlus, User, ArrowUp, CircleCheck } from 'lucide-react';
 import Layout from '@/components/Layout';
+import ChatWidget from '@/components/ChatWidget';
 
 const Dashboard = () => {
   const [userStats] = useState({
@@ -17,7 +17,6 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -186,7 +185,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
-
+      <ChatWidget />
     </Layout>
   );
 };

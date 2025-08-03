@@ -12,6 +12,7 @@ import InvestorSlice from "../slice/InvestorSlice";
 import CreateHive from "../slice/CreateHiveSlice";
 import CreateHoneyBatch from "../slice/CreateHoneyBatchSlice";
 import CreateInvestment from "../slice/CreateInvestmentSlice";
+import GetMyHives from "../slice/GetMyHivesSlice";
 
 const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ const store = configureStore({
     CreateHive: CreateHive,
     CreateHoneyBatch: CreateHoneyBatch,
     CreateInvestment: CreateInvestment,
+    GetMyHives: GetMyHives,
   },
 });
 
