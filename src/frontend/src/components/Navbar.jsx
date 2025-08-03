@@ -1,7 +1,18 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Home, Search, CirclePlus, User, Menu, X, ShoppingBag, LogOut, Settings } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  Home,
+  Search,
+  CirclePlus,
+  User,
+  Menu,
+  X,
+  ShoppingBag,
+  LogOut,
+  Settings,
+  FileText,
+} from "lucide-react";
 import { logout } from "@/utils/auth";
 
 const Navbar = () => {
@@ -18,26 +29,53 @@ const Navbar = () => {
 
   const handleDisconnect = async () => {
     try {
-      await logout(); 
+      await logout();
     } catch (error) {
-      console.error('Disconnect failed:', error);
+      console.error("Disconnect failed:", error);
     }
   };
 
   const isActive = (path) => location.pathname === path;
 
   const baseNavItems = [
-    { name: 'Home', path: '/?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai', icon: Home },
-    { name: 'Marketplace', path: '/marketplace?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai', icon: ShoppingBag },
-    { name: 'Credits', path: '/credits?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai', icon: CirclePlus },
+    {
+      name: "Home",
+      path: "/?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai",
+      icon: Home,
+    },
+    {
+      name: "Marketplace",
+      path: "/marketplace?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai",
+      icon: ShoppingBag,
+    },
+    {
+      name: "Blog",
+      path: "/blog?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai",
+      icon: FileText,
+    },
+    {
+      name: "Credits",
+      path: "/credits?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai",
+      icon: CirclePlus,
+    },
   ];
 
   const authenticatedNavItems = [
-    { name: 'Profile', path: '/profile?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai', icon: User },
-    { name: 'Settings', path: '/profile/settings?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai', icon: Settings },
+    {
+      name: "Profile",
+      path: "/profile?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai",
+      icon: User,
+    },
+    {
+      name: "Settings",
+      path: "/profile/settings?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai",
+      icon: Settings,
+    },
   ];
 
-  const navItems = isWalletConnected ? [...baseNavItems, ...authenticatedNavItems] : baseNavItems;
+  const navItems = isWalletConnected
+    ? [...baseNavItems, ...authenticatedNavItems]
+    : baseNavItems;
 
   return (
     <nav className="glass-card sticky top-0 z-50 border-b border-white/20 shadow-xl">
@@ -46,10 +84,10 @@ const Navbar = () => {
           {/* Logo with enhanced design */}
           <Link to="/" className="flex items-center space-x-3 group">
             <div className="relative">
-              <img 
-                src="/logo.png" 
-                alt="BeeTrace" 
-                className="h-12 w-auto transition-transform duration-300 group-hover:scale-110" 
+              <img
+                src="/logo.png"
+                alt="BeeTrace"
+                className="h-12 w-auto transition-transform duration-300 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-amber-400/20 to-green-400/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></div>
             </div>
@@ -66,18 +104,18 @@ const Navbar = () => {
                 to={item.path}
                 className={`flex items-center space-x-2 px-6 py-4 rounded-2xl text-base font-bold transition-all duration-300 relative overflow-hidden group ${
                   isActive(item.path)
-                    ? 'bg-gradient-to-r from-primary/20 to-primary/10 text-primary shadow-lg'
-                    : 'text-foreground hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-secondary/10'
+                    ? "bg-gradient-to-r from-primary/20 to-primary/10 text-primary shadow-lg"
+                    : "text-foreground hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-secondary/10"
                 }`}
               >
                 <item.icon className="h-5 w-5" />
                 <span className="font-bold">{item.name}</span>
-                
+
                 {/* Active indicator */}
                 {isActive(item.path) && (
                   <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full"></div>
                 )}
-                
+
                 {/* Hover effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </Link>
@@ -87,7 +125,7 @@ const Navbar = () => {
           {/* CTA Button with enhanced styling */}
           <div className="hidden md:block">
             {window.auth?.isAuthenticated ? (
-              <Button 
+              <Button
                 onClick={handleDisconnect}
                 variant="outline"
                 className="font-bold px-8 py-4 rounded-2xl border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 flex items-center gap-2"
@@ -128,17 +166,17 @@ const Navbar = () => {
                   onClick={() => setIsMenuOpen(false)}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-2xl text-base font-bold transition-all duration-300 mx-2 stagger-animation ${
                     isActive(item.path)
-                      ? 'bg-gradient-to-r from-primary/20 to-primary/10 text-primary shadow-lg'
-                      : 'text-muted-foreground hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-secondary/10'
+                      ? "bg-gradient-to-r from-primary/20 to-primary/10 text-primary shadow-lg"
+                      : "text-muted-foreground hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-secondary/10"
                   }`}
-                  style={{animationDelay: `${index * 0.1}s`}}
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <item.icon className="h-5 w-5" />
                   <span className="font-bold">{item.name}</span>
                 </Link>
               ))}
               {window.auth?.isAuthenticated ? (
-                <Button 
+                <Button
                   onClick={() => {
                     handleDisconnect();
                     setIsMenuOpen(false);
@@ -150,7 +188,11 @@ const Navbar = () => {
                   Disconnect
                 </Button>
               ) : (
-                <Link to="/wallet-login?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai" onClick={() => setIsMenuOpen(false)} className="mx-2 mt-4">
+                <Link
+                  to="/wallet-login?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="mx-2 mt-4"
+                >
                   <Button className="w-full btn-modern bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-primary-foreground font-bold py-4 rounded-2xl shadow-lg">
                     Connect Wallet
                   </Button>

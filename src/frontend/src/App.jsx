@@ -8,6 +8,7 @@ import Investor from "./pages/Investor/Investor";
 import WalletLogin from "./pages/WalletLogin";
 import RoleSelection from "./pages/RoleSelection";
 import TrackHoney from "./pages/TrackHoney";
+import Blog from "@/pages/Blog";
 import Invest from "./pages/Invest";
 import Credits from "./pages/Credits";
 import Profile from "./pages/Profile";
@@ -28,6 +29,7 @@ const routes = [
       { path: "/credits", element: <Credits /> },
       { path: "/marketplace", element: <Marketplace /> },
       { path: "*", element: <NotFound /> },
+      { path: "/blog", element: <Blog /> },
     ],
   },
   {
